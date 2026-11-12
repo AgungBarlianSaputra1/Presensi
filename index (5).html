@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistem Presensi Wajah</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap">
+<style>
+:root{--blue:#1f6bff;--cyan:#00c2ff;--navy:#0a1a3f;--bg:#f3f6fb;--ink:#101b36;--mute:#6b7792;--line:#e4e9f2;--ok:#12b886;--warn:#f59f00;--bad:#fa5252;--sh:0 1px 2px rgba(10,26,63,.05),0 12px 28px -14px rgba(10,26,63,.22)}
+*{box-sizing:border-box}
+body{margin:0;display:flex;min-height:100vh;background:var(--bg);color:var(--ink);font:15px/1.55 "Plus Jakarta Sans","Segoe UI",system-ui,sans-serif}
+h1,h2,h3,.brand span,.stat b,.clock b,.hero-clock b{font-family:Sora,"Plus Jakarta Sans",sans-serif}
+/* Sidebar terang, menu aktif navy */
+#sidebar{width:248px;position:fixed;inset:0 auto 0 0;z-index:20;background:#fff;border-right:1px solid var(--line);padding:22px 14px;transition:transform .3s}
+.brand{display:flex;gap:12px;align-items:center;padding:2px 8px 24px;color:var(--navy)}
+.brand i{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;color:#fff;font-size:19px;background:linear-gradient(135deg,var(--blue),var(--cyan))}
+.brand span{font-size:13px;font-weight:700;line-height:1.25}
+nav button{display:flex;gap:13px;align-items:center;width:100%;border:0;background:none;color:var(--mute);padding:12px 14px;margin-bottom:4px;border-radius:12px;font:600 14px "Plus Jakarta Sans",sans-serif;cursor:pointer;text-align:left;transition:.15s}
+nav button i{width:20px;text-align:center}
+nav button:hover{background:#eef3ff;color:var(--blue)}
+nav button.active{background:var(--navy);color:#fff}
+nav button.active i{color:var(--cyan)}
+#main{margin-left:248px;flex:1;min-width:0}
+header{display:flex;align-items:center;gap:12px;padding:16px 30px;position:sticky;top:0;z-index:10;background:rgba(243,246,251,.85);backdrop-filter:blur(12px)}
+header h1{flex:1;margin:0;font-size:21px}
+#menuBtn,#soundBtn{border:0;background:#fff;width:40px;height:40px;border-radius:12px;box-shadow:var(--sh);color:var(--navy);font-size:16px;cursor:pointer}
+#menuBtn{display:none}
+.clock{text-align:right;line-height:1.2;padding:6px 14px;background:#fff;border-radius:12px;box-shadow:var(--sh)}
+.clock b{display:block;font-size:17px;color:var(--blue);font-variant-numeric:tabular-nums}.clock small{color:var(--mute);font-size:12px}
+.page{display:none;padding:8px 30px 30px}
+.page.active{display:block;animation:rise .3s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* Hero dashboard */
+.hero{position:relative;overflow:hidden;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between;padding:32px;margin-bottom:20px;border-radius:24px;color:#fff;background:radial-gradient(520px 260px at 92% 0,rgba(0,194,255,.38),transparent 70%),linear-gradient(135deg,#0a1a3f,#13357a)}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:34px 34px}
+.hero>*{position:relative;z-index:1}
+.hero small{color:var(--cyan);font-weight:700}
+.hero h2{margin:4px 0 6px;font-size:28px;line-height:1.2;max-width:16ch}
+.hero p{margin:0 0 18px;color:#b9c8ec;max-width:42ch}
+.hero .btn{background:#fff;color:var(--navy);box-shadow:none}
+.hero-clock{text-align:right}.hero-clock b{display:block;font-size:48px;line-height:1;font-weight:700;font-variant-numeric:tabular-nums}.hero-clock span{color:#b9c8ec}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;margin-bottom:20px;box-shadow:var(--sh)}
+.card h3{margin:0 0 16px;font-size:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-bottom:20px}
+.stat{display:flex;gap:16px;align-items:center;margin:0;border-left:5px solid var(--blue)}
+.stat.ok{border-left-color:var(--ok)}.stat.warn{border-left-color:var(--warn)}
+.stat>i{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;font-size:21px;color:var(--blue);background:#e8f0ff}
+.stat.ok>i{color:var(--ok);background:#dff7ee}.stat.warn>i{color:var(--warn);background:#fff1d6}
+.stat small{display:block;color:var(--mute);font-size:13px}.stat b{font-size:30px;line-height:1.1}
+.grid2{display:grid;grid-template-columns:1.15fr 1fr;gap:20px;align-items:start}
+.narrow{max-width:540px}
+label{display:block;margin-bottom:14px;font-weight:600;font-size:13px;color:#2c3a5c}
+input,select{width:100%;margin-top:6px;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;background:#f7f9fd;font:inherit;color:var(--ink);transition:.15s}
+input:focus,select:focus{outline:0;background:#fff;border-color:var(--blue);box-shadow:0 0 0 4px rgba(31,107,255,.14)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.toolbar input,.toolbar select{width:auto;margin:0;flex:1;min-width:150px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.btn{display:inline-flex;gap:8px;align-items:center;border:0;color:#fff;padding:11px 18px;border-radius:12px;font:700 14px "Plus Jakarta Sans",sans-serif;cursor:pointer;background:var(--blue);box-shadow:0 8px 18px -8px rgba(31,107,255,.8);transition:.15s}
+.btn:hover:not(:disabled){transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btn.alt{background:#4b5a78;box-shadow:none}.btn.ok{background:var(--ok);box-shadow:none}.btn.danger{background:var(--bad);box-shadow:none}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:10px}
+/* Kamera: panduan oval + cincin hijau/merah sesuai hasil scan */
+.cam{position:relative;aspect-ratio:4/3;border-radius:22px;overflow:hidden;background:#07102a;box-shadow:0 0 0 3px #dbe5fb;transition:box-shadow .3s}
+.cam video,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam::before{content:"";position:absolute;z-index:2;pointer-events:none;left:50%;top:50%;width:44%;height:76%;transform:translate(-50%,-50%);border-radius:50%;border:3px dashed rgba(255,255,255,.75);box-shadow:0 0 0 999px rgba(7,16,42,.25);animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{50%{transform:translate(-50%,-50%) scale(1.03);border-color:var(--cyan)}}
+#scan .grid2:has(.result.ok) .cam{box-shadow:0 0 0 4px var(--ok),0 0 44px rgba(18,184,134,.5)}
+#scan .grid2:has(.result.bad) .cam{box-shadow:0 0 0 4px var(--bad),0 0 44px rgba(250,82,82,.4)}
+#rPreview{width:112px;margin-top:12px;border-radius:14px;border:3px solid var(--ok)}
+.status{display:inline-flex;gap:8px;align-items:center;margin:12px 8px 0 0;padding:6px 14px;border-radius:99px;background:#eef1f7;color:var(--mute);font-size:13px;font-weight:600}
+.status i{font-size:8px}.status.on{background:#dff7ee;color:#0b8a63}.status.on i{animation:pulse 1.4s infinite}.status.bad{background:#ffe3e3;color:#c92a2a}
+@keyframes pulse{50%{opacity:.3}}
+.result{margin:16px 0;padding:20px;border-radius:16px;min-height:96px;background:#eef1f7;color:var(--mute)}
+.result.ok{background:#dff7ee;color:#0b6b4d}.result.bad{background:#ffe3e3;color:#a61e1e}
+.result b{display:block;font:700 22px Sora,sans-serif;margin-bottom:2px}
+.note{margin:0;padding:12px 14px;border-radius:12px;background:#fff6dd;color:#8a5a00;font-size:12.5px}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{width:100%;min-width:580px;border-collapse:collapse}
+th,td{padding:12px 16px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{background:#f3f6fb;color:var(--mute);font-size:12.5px}
+tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#f6f9ff}
+.empty{text-align:center;color:var(--mute);padding:34px}
+.badge{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:700;background:#dff7ee;color:#0b8a63}
+.badge.warn{background:#fff1d6;color:#b36b00}.badge.bad{background:#ffe3e3;color:#c92a2a}
+.pill{padding:7px 14px;border-radius:99px;background:#e8f0ff;color:var(--blue);font-size:13px;font-weight:700}
+.chk{display:flex;align-items:center;gap:10px;cursor:pointer}.chk input{width:auto;margin:0;accent-color:var(--blue);transform:scale(1.2)}
+input[type=range]{padding:0;border:0;background:none;accent-color:var(--blue);box-shadow:none}
+:focus-visible{outline:3px solid rgba(31,107,255,.45);outline-offset:2px}
+@media(max-width:900px){#sidebar{transform:translateX(-100%)}#sidebar.open{transform:none;box-shadow:0 0 0 100vmax rgba(8,14,35,.5)}#main{margin-left:0}#menuBtn{display:grid;place-items:center}.grid2{grid-template-columns:1fr}.page{padding:6px 16px 24px}header{padding:12px 16px}.clock{display:none}.hero{padding:22px}.hero-clock{text-align:left}.hero-clock b{font-size:36px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="brand"><i class="fa-solid fa-face-viewfinder"></i><span>SISTEM PRESENSI WAJAH</span></div>
+  <nav>
+    <button data-page="dashboard" class="active"><i class="fa-solid fa-gauge"></i>Dashboard</button>
+    <button data-page="register"><i class="fa-solid fa-user-plus"></i>Registrasi Wajah</button>
+    <button data-page="scan"><i class="fa-solid fa-camera"></i>Scan Wajah</button>
+    <button data-page="users"><i class="fa-solid fa-users"></i>Data Pengguna</button>
+    <button data-page="history"><i class="fa-solid fa-clock-rotate-left"></i>Riwayat Presensi</button>
+    <button data-page="settings"><i class="fa-solid fa-gear"></i>Pengaturan</button>
+  </nav>
+</aside>
+
+<div id="main">
+  <header>
+    <button id="menuBtn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+    <h1 id="pageTitle">Dashboard</h1>
+    <button id="soundBtn" aria-label="Suara"><i class="fa-solid fa-volume-high"></i></button>
+    <div class="clock"><b id="clock"></b><small id="date"></small></div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="page active">
+    <div class="hero">
+      <div><small>Presensi tanpa kartu, tanpa antre</small><h2>Cukup hadapkan wajah ke kamera</h2><p>Presensi tercatat otomatis dan hanya satu kali per hari.</p>
+        <button class="btn" id="heroScan"><i class="fa-solid fa-camera"></i>Mulai Presensi</button></div>
+      <div class="hero-clock"><b id="heroClock"></b><span id="heroDate"></span></div>
+    </div>
+    <div class="cards">
+      <div class="card stat"><i class="fa-solid fa-users"></i><div><small>Pengguna terdaftar</small><b id="stUsers">0</b></div></div>
+      <div class="card stat"><i class="fa-solid fa-clipboard-check"></i><div><small>Presensi hari ini</small><b id="stToday">0</b></div></div>
+      <div class="card stat ok"><i class="fa-solid fa-user-check"></i><div><small>Hadir</small><b id="stPresent">0</b></div></div>
+      <div class="card stat warn"><i class="fa-solid fa-user-xmark"></i><div><small>Belum hadir</small><b id="stAbsent">0</b></div></div>
+    </div>
+    <div class="card"><h3>Presensi terbaru</h3><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Tanggal</th><th>Jam</th><th>Status</th></tr></thead><tbody id="recentBody"></tbody></table></div></div>
+  </section>
+
+  <!-- REGISTRASI -->
+  <section id="register" class="page">
+    <div class="grid2">
+      <div class="card">
+        <h3>Data pengguna</h3>
+        <label>Nama lengkap<input id="rName" autocomplete="off"></label>
+        <label>NIM / NIP / ID pengguna<input id="rId" autocomplete="off"></label>
+        <label>Email<input id="rEmail" type="email" autocomplete="off"></label>
+        <label>Kelas / Divisi<input id="rClass" autocomplete="off"></label>
+        <div class="btns">
+          <button class="btn" id="rOpen"><i class="fa-solid fa-video"></i>Buka Kamera</button>
+          <button class="btn alt" id="rCapture" disabled><i class="fa-solid fa-camera"></i>Ambil Foto</button>
+          <button class="btn ok" id="rSave" disabled><i class="fa-solid fa-floppy-disk"></i>Simpan Data</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="cam"><video id="rVideo" playsinline muted></video><canvas id="rCanvas"></canvas></div>
+        <p class="status" id="rStatus"><i class="fa-solid fa-circle"></i> Kamera mati</p>
+        <img id="rPreview" alt="Hasil foto" hidden>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCAN -->
+  <section id="scan" class="page">
+    <div class="grid2">
+      <div class="card">
+        <div class="cam"><video id="sVideo" playsinline muted></video><canvas id="sCanvas"></canvas></div>
+        <div class="btns">
+          <button class="btn" id="sStart"><i class="fa-solid fa-play"></i>Mulai Scan</button>
+          <button class="btn danger" id="sStop" disabled><i class="fa-solid fa-stop"></i>Hentikan Kamera</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Status</h3>
+        <p class="status" id="sCam"><i class="fa-solid fa-circle"></i> Kamera mati</p>
+        <p class="status" id="sFace"><i class="fa-solid fa-circle"></i> Wajah belum terdeteksi</p>
+        <div id="sResult" class="result">Hasil pencocokan akan tampil di sini.</div>
+        <p class="note"><i class="fa-solid fa-triangle-exclamation"></i> Prototipe: pencocokan memakai geometri Face Landmark, bukan model pengenalan wajah. Tidak aman sebagai autentikasi biometrik.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA PENGGUNA -->
+  <section id="users" class="page">
+    <div class="card">
+      <div class="toolbar"><input id="uSearch" placeholder="Cari nama / ID / email..."><span class="pill" id="uCount"></span></div>
+      <div class="table-wrap"><table><thead><tr><th>No.</th><th>ID Pengguna</th><th>Nama Lengkap</th><th>Email</th><th>Kelas / Divisi</th><th>Wajah</th><th>Aksi</th></tr></thead><tbody id="uBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- RIWAYAT -->
+  <section id="history" class="page">
+    <div class="card">
+      <div class="toolbar">
+        <input type="date" id="hDate">
+        <input id="hSearch" placeholder="Cari nama...">
+        <select id="hStatus"><option value="">Semua status</option><option>Hadir</option><option>Terlambat</option></select>
+        <button class="btn alt" id="hExport"><i class="fa-solid fa-file-csv"></i>Export CSV</button>
+        <button class="btn danger" id="hClear"><i class="fa-solid fa-trash"></i>Hapus Semua</button>
+        <span class="pill" id="hCount"></span>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>No.</th><th>ID</th><th>Nama</th><th>Tanggal</th><th>Jam</th><th>Status</th><th>Metode</th><th></th></tr></thead><tbody id="hBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- PENGATURAN -->
+  <section id="settings" class="page">
+    <div class="card narrow">
+      <h3>Pengaturan</h3>
+      <label>Ambang jarak pencocokan (makin kecil makin ketat)<input id="setThr" type="number" step="0.005" min="0.01" max="0.5"></label>
+      <label>Batas jam hadir (setelahnya berstatus Terlambat)<input id="setLate" type="time"></label>
+      <label class="chk"><input type="checkbox" id="setSound"> Efek suara (nada sukses, gagal, dan deteksi)</label>
+      <label class="chk"><input type="checkbox" id="setVoice"> Suara pengumuman berbahasa Indonesia</label>
+      <label>Volume<input id="setVol" type="range" min="0" max="1" step="0.05"></label>
+      <div class="btns">
+        <button class="btn ok" id="setSave"><i class="fa-solid fa-floppy-disk"></i>Simpan Pengaturan</button>
+        <button class="btn alt" id="setTest"><i class="fa-solid fa-volume-high"></i>Tes Suara</button>
+        <button class="btn danger" id="setClear"><i class="fa-solid fa-database"></i>Hapus Seluruh Database</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="module">
+import { FaceLandmarker, FilesetResolver, DrawingUtils }
+  from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad = (n) => String(n).padStart(2, "0");
+const todayStr = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const timeStr = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+/* ===================== DATABASE (Cloudflare D1 lewat Worker API) =====================
+   Data dimuat sekali ke memori (cache) saat aplikasi dibuka, sehingga fungsi tetap sinkron.
+   Setiap perubahan langsung ditulis ke server (write-through). */
+const DEFAULTS = { threshold: 0.1, lateTime: "08:00", sound: true, voice: true, volume: 0.7 };
+const cache = { users: [], faceData: {}, attendance: [], settings: {} };
+
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method, body: body ? JSON.stringify(body) : undefined,
+    headers: { "content-type": "application/json", "x-api-key": localStorage.getItem("apiKey") || "" },
+  });
+  if (res.status === 401) { // minta API key sekali, simpan di browser
+    const r = await Swal.fire({ title: "API key", text: "Masukkan API key server.", input: "password", confirmButtonText: "Simpan", allowOutsideClick: false });
+    if (r.value) { localStorage.setItem("apiKey", r.value); return api(method, path, body); }
+    throw new Error("Tidak diizinkan");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+const sync = (...a) => api(...a).catch((e) => Swal.fire("Gagal sinkron ke server", e.message, "error"));
+async function loadAll() {
+  try { Object.assign(cache, await api("GET", "/api/state")); }
+  catch (e) { Swal.fire("Tidak bisa memuat data server", e.message, "error"); }
+}
+
+const read = (k, def) => cache[k] ?? def;
+const write = (k, v) => { cache[k] = v; if (k === "settings") sync("PUT", "/api/settings", v); };
+const enc = encodeURIComponent;
+
+const getSettings = () => ({ ...DEFAULTS, ...cache.settings });
+const getUsers = () => cache.users;
+const saveUser = (u) => { cache.users.push(u); sync("POST", "/api/users", u); };
+const updateUser = (id, d) => { cache.users = cache.users.map((u) => (u.id === id ? { ...u, ...d } : u)); sync("PUT", `/api/users/${enc(id)}`, d); };
+const deleteUser = (id) => { cache.users = cache.users.filter((u) => u.id !== id); delete cache.faceData[id]; sync("DELETE", `/api/users/${enc(id)}`); };
+const saveFaceData = (id, vec) => { cache.faceData[id] = vec; sync("PUT", `/api/faces/${enc(id)}`, { vec }); };
+const getAttendance = () => cache.attendance;
+const saveAttendance = (rec) => { cache.attendance.push(rec); sync("POST", "/api/attendance", rec); };
+const deleteAttendance = (ts) => {
+  cache.attendance = ts === "all" ? [] : cache.attendance.filter((r) => r.ts !== ts);
+  sync("DELETE", ts === "all" ? "/api/attendance" : `/api/attendance/${enc(ts)}`);
+};
+const clearDatabase = () => { Object.assign(cache, { users: [], faceData: {}, attendance: [], settings: {} }); sync("POST", "/api/clear"); };
+
+/** Bandingkan vektor fitur dengan semua wajah tersimpan (jarak Euclidean rata-rata per titik). */
+function recognizeFace(vec) {
+  const faces = read("faceData", {}), users = getUsers();
+  let best = null;
+  for (const [id, ref] of Object.entries(faces)) {
+    let sum = 0;
+    for (let i = 0; i < ref.length; i += 2) sum += Math.hypot(vec[i] - ref[i], vec[i + 1] - ref[i + 1]);
+    const dist = sum / (ref.length / 2);
+    if (!best || dist < best.distance) best = { id, distance: dist };
+  }
+  if (!best) return { match: false, distance: null };
+  const user = users.find((u) => u.id === best.id);
+  return { match: !!user && best.distance <= getSettings().threshold, user, distance: best.distance };
+}
+
+function exportAttendance(rows = getAttendance()) {
+  const head = ["ID", "Nama", "Email", "Tanggal", "Jam", "Status", "Metode"];
+  const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = [head, ...rows.map((r) => [r.id, r.name, r.email, r.date, r.time, r.status, r.method])].map((r) => r.map(q).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" }));
+  a.download = `presensi_${todayStr()}.csv`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ===================== SUARA (Web Audio + Speech Synthesis) ===================== */
+let actx = null;
+/** Satu nada sintetis: frekuensi, jeda mulai, durasi, bentuk gelombang, volume, (opsional) meluncur ke frekuensi lain. */
+function tone(f, t0, dur, type = "sine", vol = 0.25, slideTo) {
+  const st = getSettings(); if (!st.sound) return;
+  actx ??= new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === "suspended") actx.resume();
+  const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + t0, v = Math.max(vol * st.volume, 0.0003);
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(v, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + 0.05);
+}
+const sfx = {
+  success() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => { tone(f, i * 0.09, 0.4, "triangle", 0.3); tone(f * 2, i * 0.09, 0.22, "sine", 0.08); }); }, // arpeggio C mayor naik
+  info() { tone(659.25, 0, 0.18, "sine", 0.25); tone(523.25, 0.14, 0.3, "sine", 0.25); },
+  fail() { tone(220, 0, 0.22, "sawtooth", 0.14, 150); tone(165, 0.18, 0.32, "sawtooth", 0.14, 110); },
+  detect() { tone(880, 0, 0.07, "sine", 0.15); tone(1174.7, 0.07, 0.1, "sine", 0.15); },
+  on() { tone(440, 0, 0.14, "triangle", 0.2, 880); },
+  shutter() { tone(1800, 0, 0.04, "square", 0.08); tone(900, 0.05, 0.07, "square", 0.08); },
+};
+function speak(text) {
+  const st = getSettings(); if (!st.voice || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "id-ID"; u.pitch = 1.05; u.volume = Math.max(0.3, st.volume);
+  const v = speechSynthesis.getVoices().find((x) => x.lang.toLowerCase().startsWith("id"));
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+const salam = (h) => (h < 11 ? "pagi" : h < 15 ? "siang" : h < 18 ? "sore" : "malam");
+if ("speechSynthesis" in window) speechSynthesis.getVoices(); // pancing pemuatan daftar suara
+
+/* ===================== MEDIAPIPE & KAMERA ===================== */
+let landmarker = null, stream = null, raf = 0, activeVideo = null;
+
+async function initLandmarker() {
+  if (landmarker) return landmarker;
+  const fileset = await FilesetResolver.forVisionTasks(WASM);
+  const opts = (delegate) => ({ baseOptions: { modelAssetPath: MODEL, delegate }, runningMode: "VIDEO", numFaces: 1 });
+  try { landmarker = await FaceLandmarker.createFromOptions(fileset, opts("GPU")); }
+  catch { landmarker = await FaceLandmarker.createFromOptions(fileset, opts("CPU")); }
+  return landmarker;
+}
+
+/** Normalisasi: pusat di ujung hidung, rotasi sejajar garis mata, skala jarak antar-mata. */
+function normalize(lm, w, h) {
+  const a = lm[33], b = lm[263], n = lm[1];
+  const ang = Math.atan2((b.y - a.y) * h, (b.x - a.x) * w), c = Math.cos(-ang), s = Math.sin(-ang);
+  const d = Math.hypot((b.x - a.x) * w, (b.y - a.y) * h) || 1, out = [];
+  for (let i = 0; i < 468; i++) {
+    const x = ((lm[i].x - n.x) * w) / d, y = ((lm[i].y - n.y) * h) / d;
+    out.push(+(x * c - y * s).toFixed(4), +(x * s + y * c).toFixed(4));
+  }
+  return out;
+}
+
+/** Nyalakan kamera + loop deteksi. onResult(landmarks|null, vec|null) dipanggil tiap frame. */
+async function startCamera(video, canvas, onResult) {
+  stopCamera();
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("Browser tidak mendukung kamera atau halaman tidak memakai HTTPS/localhost.");
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false }); }
+  catch (e) {
+    throw new Error(e.name === "NotAllowedError" ? "Izin kamera ditolak. Izinkan akses kamera di browser."
+      : e.name === "NotFoundError" ? "Kamera tidak ditemukan." : "Kamera gagal dibuka: " + e.message);
+  }
+  video.srcObject = stream; activeVideo = video;
+  await video.play();
+  const lm = await initLandmarker();
+  sfx.on();
+  const ctx = canvas.getContext("2d"), draw = new DrawingUtils(ctx);
+  let lastT = -1;
+  const loop = () => {
+    if (!stream) return;
+    if (video.currentTime !== lastT && video.videoWidth) {
+      lastT = video.currentTime;
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      const res = lm.detectForVideo(video, performance.now());
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const pts = res.faceLandmarks?.[0];
+      if (pts) {
+        draw.drawConnectors(pts, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { color: "#7fb0ff55", lineWidth: 0.5 });
+        draw.drawLandmarks(pts, { color: "#ffffff", radius: 0.8 });
+        const xs = pts.map((p) => p.x * canvas.width), ys = pts.map((p) => p.y * canvas.height);
+        const x = Math.min(...xs), y = Math.min(...ys);
+        ctx.strokeStyle = "#3fd68f"; ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, Math.max(...xs) - x, Math.max(...ys) - y);
+        onResult(pts, normalize(pts, canvas.width, canvas.height));
+      } else onResult(null, null);
+    }
+    raf = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function stopCamera() {
+  cancelAnimationFrame(raf); raf = 0;
+  stream?.getTracks().forEach((t) => t.stop()); stream = null;
+  if (activeVideo) { activeVideo.srcObject = null; activeVideo = null; }
+  document.querySelectorAll(".cam canvas").forEach((c) => c.getContext("2d").clearRect(0, 0, c.width, c.height));
+}
+
+const setStatus = (el, on, text) => { el.className = "status " + (on === true ? "on" : on === false ? "bad" : ""); el.innerHTML = `<i class="fa-solid fa-circle"></i> ${text}`; };
+const toast = (icon, title, text, silent) => {
+  if (!silent) (icon === "success" ? sfx.success : icon === "info" ? sfx.info : sfx.fail)();
+  return Swal.fire({ icon, title, text, timer: 2200, showConfirmButton: false });
+};
+/** Dialog error/peringatan + bunyi sesuai jenisnya. */
+const warn = (t, x, i) => { (i === "error" || i === "warning" ? sfx.fail : sfx.info)(); return Swal.fire(t, x, i); };
+
+/* ===================== NAVIGASI & DASHBOARD ===================== */
+const titles = { dashboard: "Dashboard", register: "Registrasi Wajah", scan: "Scan Wajah", users: "Data Pengguna", history: "Riwayat Presensi", settings: "Pengaturan" };
+function showPage(name) {
+  stopCamera(); resetRegister(); resetScan(); // kamera selalu mati saat pindah halaman
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === name));
+  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b.dataset.page === name));
+  $("pageTitle").textContent = titles[name]; $("sidebar").classList.remove("open");
+  ({ dashboard: renderDashboard, users: renderUsers, history: renderHistory, settings: renderSettings })[name]?.();
+}
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => showPage(b.dataset.page)));
+$("menuBtn").addEventListener("click", () => $("sidebar").classList.toggle("open"));
+
+function tick() {
+  const d = new Date();
+  $("clock").textContent = $("heroClock").textContent = timeStr(d);
+  $("date").textContent = $("heroDate").textContent = d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+setInterval(tick, 1000); tick();
+
+const badge = (s) => `<span class="badge ${s === "Hadir" ? "" : "warn"}">${esc(s)}</span>`;
+function renderDashboard() {
+  const users = getUsers(), today = getAttendance().filter((r) => r.date === todayStr());
+  const present = new Set(today.map((r) => r.id)).size;
+  $("stUsers").textContent = users.length; $("stToday").textContent = today.length;
+  $("stPresent").textContent = present; $("stAbsent").textContent = Math.max(users.length - present, 0);
+  const recent = getAttendance().slice(-5).reverse();
+  $("recentBody").innerHTML = recent.map((r) => `<tr><td>${esc(r.name)}</td><td>${r.date}</td><td>${r.time}</td><td>${badge(r.status)}</td></tr>`).join("") || `<tr><td colspan="4" class="empty">Belum ada presensi.</td></tr>`;
+}
+
+/* ===================== REGISTRASI ===================== */
+let capturedVec = null, latest = null;
+function resetRegister() {
+  capturedVec = null; latest = null;
+  $("rCapture").disabled = true; $("rSave").disabled = true; $("rPreview").hidden = true;
+  setStatus($("rStatus"), null, "Kamera mati");
+}
+$("rOpen").addEventListener("click", async () => {
+  setStatus($("rStatus"), null, "Memuat kamera & MediaPipe...");
+  try {
+    await startCamera($("rVideo"), $("rCanvas"), (pts, vec) => {
+      latest = vec ? { vec, pts } : null;
+      setStatus($("rStatus"), !!vec, vec ? "Wajah terdeteksi" : "Wajah belum terdeteksi");
+    });
+    $("rCapture").disabled = false;
+  } catch (e) { setStatus($("rStatus"), false, e.message); warn("Gagal", e.message, "error"); }
+});
+$("rCapture").addEventListener("click", () => {
+  if (!latest) return warn("Wajah tidak terdeteksi", "Hadapkan wajah ke kamera dengan pencahayaan cukup.", "warning");
+  // Validasi: wajah harus cukup besar di dalam frame
+  const xs = latest.pts.map((p) => p.x), width = Math.max(...xs) - Math.min(...xs);
+  if (width < 0.25) return warn("Wajah terlalu jauh", "Dekatkan wajah ke kamera.", "warning");
+  capturedVec = latest.vec;
+  const v = $("rVideo"), c = document.createElement("canvas"); c.width = 160; c.height = 120;
+  c.getContext("2d").drawImage(v, 0, 0, 160, 120);
+  $("rPreview").src = c.toDataURL("image/jpeg", 0.7); $("rPreview").hidden = false;
+  $("rSave").disabled = false; sfx.shutter(); toast("success", "Foto & landmark diambil", undefined, true);
+});
+$("rSave").addEventListener("click", () => {
+  const u = { id: $("rId").value.trim(), name: $("rName").value.trim(), email: $("rEmail").value.trim(), kelas: $("rClass").value.trim(), createdAt: new Date().toISOString() };
+  if (!u.id || !u.name || !u.email || !u.kelas) return warn("Form belum lengkap", "Isi semua kolom.", "warning");
+  if (!/^\S+@\S+\.\S+$/.test(u.email)) return warn("Email tidak valid", "", "warning");
+  if (getUsers().some((x) => x.id.toLowerCase() === u.id.toLowerCase())) return warn("ID sudah terdaftar", "Gunakan ID pengguna yang berbeda.", "error");
+  if (!capturedVec) return warn("Wajah belum diambil", "Klik Ambil Foto terlebih dahulu.", "warning");
+  saveUser(u); saveFaceData(u.id, capturedVec);
+  ["rId", "rName", "rEmail", "rClass"].forEach((i) => ($(i).value = ""));
+  stopCamera(); resetRegister(); toast("success", "Registrasi berhasil", u.name);
+});
+
+/* ===================== SCAN & PRESENSI ===================== */
+let streak = { id: null, n: 0 }, cooldownUntil = 0, hadFace = false, lastFail = 0;
+function resetScan() {
+  streak = { id: null, n: 0 }; hadFace = false;
+  $("sStart").disabled = false; $("sStop").disabled = true;
+  setStatus($("sCam"), null, "Kamera mati"); setStatus($("sFace"), null, "Wajah belum terdeteksi");
+  $("sResult").className = "result"; $("sResult").textContent = "Hasil pencocokan akan tampil di sini.";
+}
+function markAttendance(user) {
+  const now = new Date(), date = todayStr(now);
+  // Aturan: satu presensi per pengguna per hari (dicek langsung di database)
+  if (getAttendance().some((r) => r.id === user.id && r.date === date)) {
+    $("sResult").className = "result ok"; $("sResult").innerHTML = `<b>${esc(user.name)}</b>Anda sudah melakukan presensi hari ini`;
+    speak("Anda sudah melakukan presensi hari ini");
+    return toast("info", "Anda sudah melakukan presensi hari ini", user.name);
+  }
+  const [lh, lm] = getSettings().lateTime.split(":").map(Number);
+  const late = now.getHours() * 60 + now.getMinutes() > lh * 60 + lm;
+  saveAttendance({ ts: now.getTime() + "-" + user.id, id: user.id, name: user.name, email: user.email, date, time: timeStr(now), status: late ? "Terlambat" : "Hadir", method: "Scan Wajah" });
+  $("sResult").className = "result ok"; $("sResult").innerHTML = `<b>${esc(user.name)}</b>Presensi berhasil (${late ? "Terlambat" : "Hadir"})`;
+  toast("success", "Presensi berhasil", user.name);
+  speak(`Presensi berhasil. Selamat ${salam(now.getHours())}, ${user.name}.${late ? " Anda terlambat hari ini." : ""}`);
+}
+$("sStart").addEventListener("click", async () => {
+  setStatus($("sCam"), null, "Memuat kamera & MediaPipe...");
+  try {
+    await startCamera($("sVideo"), $("sCanvas"), (pts, vec) => {
+      setStatus($("sFace"), !!vec, vec ? "Wajah terdeteksi" : "Wajah belum terdeteksi");
+      if (vec && !hadFace) sfx.detect(); // bunyi singkat saat wajah baru masuk frame
+      hadFace = !!vec;
+      if (!vec || performance.now() < cooldownUntil) return;
+      const r = recognizeFace(vec);
+      if (!r.match) {
+        streak = { id: null, n: 0 };
+        if (performance.now() - lastFail > 3500) { lastFail = performance.now(); sfx.fail(); speak("Wajah tidak dikenali"); }
+        $("sResult").className = "result bad";
+        $("sResult").innerHTML = `<b>Wajah tidak dikenali</b>${r.distance != null ? "Jarak terdekat: " + r.distance.toFixed(3) : "Belum ada wajah terdaftar."}`;
+        return;
+      }
+      streak = streak.id === r.user.id ? { id: streak.id, n: streak.n + 1 } : { id: r.user.id, n: 1 };
+      $("sResult").className = "result ok"; $("sResult").innerHTML = `<b>${esc(r.user.name)}</b>Jarak ${r.distance.toFixed(3)} · memverifikasi...`;
+      if (streak.n >= 8) { // 8 frame berturut-turut -> cegah salah cocok & presensi ganda
+        cooldownUntil = performance.now() + 5000; streak = { id: null, n: 0 };
+        markAttendance(r.user);
+      }
+    });
+    setStatus($("sCam"), true, "Kamera aktif"); $("sStart").disabled = true; $("sStop").disabled = false;
+  } catch (e) { setStatus($("sCam"), false, e.message); warn("Gagal", e.message, "error"); }
+});
+$("sStop").addEventListener("click", () => { stopCamera(); resetScan(); });
+
+/* ===================== DATA PENGGUNA ===================== */
+function renderUsers() {
+  const q = $("uSearch").value.toLowerCase(), faces = read("faceData", {}), all = getUsers();
+  const rows = all.filter((u) => [u.id, u.name, u.email, u.kelas].join(" ").toLowerCase().includes(q));
+  $("uCount").textContent = `${all.length} pengguna terdaftar`;
+  $("uBody").innerHTML = rows.map((u, i) => `<tr><td>${i + 1}</td><td>${esc(u.id)}</td><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.kelas)}</td>
+    <td><span class="badge ${faces[u.id] ? "" : "bad"}">${faces[u.id] ? "Terdaftar" : "Belum"}</span></td>
+    <td><button class="btn sm" data-edit="${esc(u.id)}"><i class="fa-solid fa-pen"></i>Edit</button> <button class="btn sm danger" data-del="${esc(u.id)}"><i class="fa-solid fa-trash"></i>Hapus</button></td></tr>`).join("") || `<tr><td colspan="7" class="empty">Tidak ada data pengguna.</td></tr>`;
+}
+$("uSearch").addEventListener("input", renderUsers);
+$("uBody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button"); if (!btn) return;
+  if (btn.dataset.del) {
+    const u = getUsers().find((x) => x.id === btn.dataset.del);
+    const r = await Swal.fire({ title: "Hapus pengguna?", text: `${u.name} dan data wajahnya akan dihapus.`, icon: "warning", showCancelButton: true, confirmButtonText: "Hapus", cancelButtonText: "Batal", confirmButtonColor: "#d23b3b" });
+    if (r.isConfirmed) { deleteUser(u.id); renderUsers(); toast("success", "Pengguna dihapus"); }
+  } else if (btn.dataset.edit) {
+    const u = getUsers().find((x) => x.id === btn.dataset.edit);
+    const r = await Swal.fire({
+      title: "Edit pengguna", showCancelButton: true, confirmButtonText: "Simpan", cancelButtonText: "Batal",
+      html: `<input id="eN" class="swal2-input" placeholder="Nama" value="${esc(u.name)}"><input id="eE" class="swal2-input" placeholder="Email" value="${esc(u.email)}"><input id="eK" class="swal2-input" placeholder="Kelas / Divisi" value="${esc(u.kelas)}">`,
+      preConfirm: () => {
+        const d = { name: $("eN").value.trim(), email: $("eE").value.trim(), kelas: $("eK").value.trim() };
+        if (!d.name || !/^\S+@\S+\.\S+$/.test(d.email) || !d.kelas) return Swal.showValidationMessage("Isi nama, email valid, dan kelas/divisi.");
+        return d;
+      },
+    });
+    if (r.isConfirmed) { updateUser(u.id, r.value); renderUsers(); toast("success", "Data diperbarui"); }
+  }
+});
+
+/* ===================== RIWAYAT ===================== */
+const filteredHistory = () => {
+  const d = $("hDate").value, q = $("hSearch").value.toLowerCase(), s = $("hStatus").value;
+  return getAttendance().filter((r) => (!d || r.date === d) && (!q || r.name.toLowerCase().includes(q)) && (!s || r.status === s));
+};
+function renderHistory() {
+  const rows = filteredHistory();
+  $("hCount").textContent = `Total kehadiran: ${rows.length}`;
+  $("hBody").innerHTML = rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.id)}</td><td>${esc(r.name)}</td><td>${r.date}</td><td>${r.time}</td><td>${badge(r.status)}</td><td>${esc(r.method)}</td>
+    <td><button class="btn sm danger" data-del="${esc(r.ts)}" aria-label="Hapus"><i class="fa-solid fa-trash"></i></button></td></tr>`).join("") || `<tr><td colspan="8" class="empty">Tidak ada riwayat presensi.</td></tr>`;
+}
+["hDate", "hSearch", "hStatus"].forEach((i) => $(i).addEventListener("input", renderHistory));
+$("hExport").addEventListener("click", () => { const r = filteredHistory(); r.length ? exportAttendance(r) : warn("Tidak ada data untuk diexport", "", "info"); });
+$("hBody").addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-del]"); if (!b) return;
+  const r = await Swal.fire({ title: "Hapus catatan ini?", icon: "warning", showCancelButton: true, confirmButtonText: "Hapus", cancelButtonText: "Batal" });
+  if (r.isConfirmed) { deleteAttendance(b.dataset.del); renderHistory(); }
+});
+$("hClear").addEventListener("click", async () => {
+  const r = await Swal.fire({ title: "Hapus seluruh riwayat?", text: "Tindakan ini tidak dapat dibatalkan.", icon: "warning", showCancelButton: true, confirmButtonText: "Hapus semua", cancelButtonText: "Batal", confirmButtonColor: "#d23b3b" });
+  if (r.isConfirmed) { deleteAttendance("all"); renderHistory(); toast("success", "Riwayat dihapus"); }
+});
+
+/* ===================== PENGATURAN ===================== */
+function renderSettings() {
+  const s = getSettings(); $("setThr").value = s.threshold; $("setLate").value = s.lateTime;
+  $("setSound").checked = s.sound; $("setVoice").checked = s.voice; $("setVol").value = s.volume;
+}
+// Pengaturan suara tersimpan langsung saat diubah
+function persistSound() {
+  write("settings", { ...getSettings(), sound: $("setSound").checked, voice: $("setVoice").checked, volume: parseFloat($("setVol").value) });
+  syncSoundBtn();
+}
+["setSound", "setVoice", "setVol"].forEach((i) => $(i).addEventListener("change", persistSound));
+$("setTest").addEventListener("click", () => { sfx.success(); speak(`Tes suara. Presensi berhasil. Selamat ${salam(new Date().getHours())}.`); });
+function syncSoundBtn() { const s = getSettings(); $("soundBtn").innerHTML = `<i class="fa-solid ${s.sound || s.voice ? "fa-volume-high" : "fa-volume-xmark"}"></i>`; }
+$("soundBtn").addEventListener("click", () => { // tombol cepat: bisukan / aktifkan semua suara
+  const s = getSettings(), on = !(s.sound || s.voice);
+  write("settings", { ...s, sound: on, voice: on }); syncSoundBtn(); if (on) sfx.on(); else speechSynthesis?.cancel();
+});
+syncSoundBtn();
+$("setSave").addEventListener("click", () => {
+  const t = parseFloat($("setThr").value);
+  if (!(t > 0) || !$("setLate").value) return warn("Nilai tidak valid", "", "warning");
+  write("settings", { ...getSettings(), threshold: t, lateTime: $("setLate").value }); toast("success", "Pengaturan disimpan");
+});
+$("setClear").addEventListener("click", async () => {
+  const r = await Swal.fire({ title: "Hapus seluruh database?", text: "Pengguna, data wajah, presensi, dan pengaturan akan hilang.", icon: "warning", showCancelButton: true, confirmButtonText: "Hapus semua", cancelButtonText: "Batal", confirmButtonColor: "#d23b3b" });
+  if (r.isConfirmed) { clearDatabase(); renderSettings(); toast("success", "Database dikosongkan"); }
+});
+
+window.addEventListener("beforeunload", stopCamera);
+$("heroScan").addEventListener("click", () => showPage("scan"));
+await loadAll(); // muat data dari D1 sebelum tampilan pertama
+syncSoundBtn();
+renderDashboard();
+</script>
+</body>
+</html>

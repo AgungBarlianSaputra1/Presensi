@@ -1,0 +1,14 @@
+name = "presensi-wajah"
+main = "index.js"
+compatibility_date = "2026-01-01"
+
+# Izinkan `import html from "./index.html"` (dibaca sebagai teks)
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "presensi-db"
+database_id = "GANTI_DENGAN_ID_DARI_PERINTAH_D1_CREATE"
