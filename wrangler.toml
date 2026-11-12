@@ -10,5 +10,5 @@ fallthrough = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "presensi-db"
-database_id = "GANTI_DENGAN_ID_DARI_PERINTAH_D1_CREATE"
+database_name = "presensi"
+database_id = "52663cec-37c3-4422-90df-d60d8de1c364"
